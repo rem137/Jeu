@@ -177,35 +177,40 @@ function gameOver() {
     ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2);
 }
 
-canvas.addEventListener('click', e => {
+function getCanvasPos(e) {
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const cfg = TOWER_TYPES[selectedTower];
-    if (gold >= cfg.cost) {
-        towers.push(new Tower(x, y, selectedTower));
-        gold -= cfg.cost;
-        updateStats();
-    }
-});
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    return { x, y };
+}
 
-canvas.addEventListener('contextmenu', e => {
+function handlePointerDown(e) {
     e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const { x, y } = getCanvasPos(e);
     const tower = towers.find(t => Math.abs(t.x - x) < gridSize / 2 && Math.abs(t.y - y) < gridSize / 2);
     if (tower) {
         tower.upgrade();
+    } else {
+        const cfg = TOWER_TYPES[selectedTower];
+        if (gold >= cfg.cost) {
+            towers.push(new Tower(x, y, selectedTower));
+            gold -= cfg.cost;
+            updateStats();
+        }
     }
-});
+}
 
-canvas.addEventListener('mousemove', e => {
-    const rect = canvas.getBoundingClientRect();
-    mouseX = e.clientX - rect.left;
-    mouseY = e.clientY - rect.top;
+function handlePointerMove(e) {
+    const { x, y } = getCanvasPos(e);
+    mouseX = x;
+    mouseY = y;
     hoverTower = towers.find(t => Math.abs(t.x - mouseX) < gridSize / 2 && Math.abs(t.y - mouseY) < gridSize / 2) || null;
-});
+}
+
+canvas.addEventListener('pointerdown', handlePointerDown);
+canvas.addEventListener('pointermove', handlePointerMove);
 
 document.querySelectorAll('#controls button[data-tower]').forEach(btn => {
     btn.addEventListener('click', () => {
