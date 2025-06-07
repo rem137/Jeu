@@ -11,15 +11,17 @@ const startBtn = document.getElementById('startBtn');
 let gold = 100;
 let lives = 10;
 let wave = 0;
+let kills = 0;
 let waveInProgress = false;
 const TOWER_TYPES = {
     H: { cost: 20, damage: 10, range: 80, color: '#0af' },
-    O: { cost: 30, damage: 15, range: 100, color: '#0f0' }
+    O: { cost: 30, damage: 15, range: 100, color: '#0f0' },
+    C: { cost: 50, damage: 25, range: 120, color: '#f80' }
 };
 let selectedTower = 'H';
 
 function updateStats() {
-    statsDiv.textContent = `Gold: ${gold} | Lives: ${lives} | Wave: ${wave}`;
+    statsDiv.textContent = `Gold: ${gold} | Lives: ${lives} | Wave: ${wave} | Kills: ${kills}`;
 }
 updateStats();
 
@@ -34,6 +36,18 @@ class Tower {
         this.color = cfg.color;
         this.cooldown = 1000;
         this.lastShot = 0;
+        this.level = 1;
+    }
+
+    upgrade() {
+        const cost = TOWER_TYPES[this.type].cost * this.level;
+        if (gold >= cost) {
+            gold -= cost;
+            this.level++;
+            this.damage = Math.round(this.damage * 1.5);
+            this.range = Math.round(this.range * 1.1);
+            updateStats();
+        }
     }
 
     draw() {
@@ -42,7 +56,7 @@ class Tower {
         ctx.fillStyle = '#fff';
         ctx.font = '16px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(this.type, this.x, this.y + 6);
+        ctx.fillText(this.type + this.level, this.x, this.y + 6);
     }
 
     update(delta) {
@@ -63,13 +77,22 @@ class Tower {
     }
 }
 
+const ENEMY_TYPES = {
+    normal: { speed: 50, health: 80, color: '#f00' },
+    fast: { speed: 90, health: 60, color: '#ff0' },
+    tank: { speed: 30, health: 160, color: '#0ff' }
+};
+
 class Enemy {
-    constructor(path, level = 1) {
+    constructor(path, level = 1, type = 'normal') {
         this.path = path;
+        this.type = type;
+        const cfg = ENEMY_TYPES[type];
         this.pos = 0;
-        this.speed = 50 + level * 5; // pixels per second
-        this.health = 80 + level * 20;
+        this.speed = cfg.speed + level * 2;
+        this.health = cfg.health + level * 10;
         this.maxHealth = this.health;
+        this.color = cfg.color;
         this.x = path[0].x;
         this.y = path[0].y;
         this.pathLength = this.computeLength();
@@ -100,7 +123,7 @@ class Enemy {
     }
 
     draw() {
-        ctx.fillStyle = '#f00';
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, gridSize / 3, 0, Math.PI * 2);
         ctx.fill();
@@ -124,7 +147,13 @@ const path = [
 ];
 
 function spawnEnemy(level) {
-    enemies.push(new Enemy(path, level));
+    let type = 'normal';
+    if (level > 5 && Math.random() < 0.3) {
+        type = 'tank';
+    } else if (level > 2 && Math.random() < 0.4) {
+        type = 'fast';
+    }
+    enemies.push(new Enemy(path, level, type));
 }
 
 function gameOver() {
@@ -145,6 +174,17 @@ canvas.addEventListener('click', e => {
         towers.push(new Tower(x, y, selectedTower));
         gold -= cfg.cost;
         updateStats();
+    }
+});
+
+canvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const tower = towers.find(t => Math.abs(t.x - x) < gridSize / 2 && Math.abs(t.y - y) < gridSize / 2);
+    if (tower) {
+        tower.upgrade();
     }
 });
 
@@ -196,6 +236,7 @@ function update(time) {
         e.update(delta);
         if (e.health <= 0) {
             enemies.splice(i, 1);
+            kills++;
             gold += 5;
             updateStats();
         } else if (e.pos >= e.path.length - 1) {
