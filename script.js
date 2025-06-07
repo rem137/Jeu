@@ -7,39 +7,49 @@ const towers = [];
 const enemies = [];
 
 const statsDiv = document.getElementById('stats');
+const startBtn = document.getElementById('startBtn');
 let gold = 100;
 let lives = 10;
-const TOWER_COST = 20;
+let wave = 0;
+let waveInProgress = false;
+const TOWER_TYPES = {
+    H: { cost: 20, damage: 10, range: 80, color: '#0af' },
+    O: { cost: 30, damage: 15, range: 100, color: '#0f0' }
+};
+let selectedTower = 'H';
 
 function updateStats() {
-    statsDiv.textContent = `Gold: ${gold} | Lives: ${lives}`;
+    statsDiv.textContent = `Gold: ${gold} | Lives: ${lives} | Wave: ${wave}`;
 }
 updateStats();
 
 class Tower {
-    constructor(x, y, element) {
+    constructor(x, y, type) {
         this.x = x;
         this.y = y;
-        this.element = element; // ex: "H", "O"
-        this.range = 80;
+        this.type = type;
+        const cfg = TOWER_TYPES[type];
+        this.range = cfg.range;
+        this.damage = cfg.damage;
+        this.color = cfg.color;
         this.cooldown = 1000;
         this.lastShot = 0;
     }
 
     draw() {
-        ctx.fillStyle = '#0af';
+        ctx.fillStyle = this.color;
         ctx.fillRect(this.x - gridSize / 2, this.y - gridSize / 2, gridSize, gridSize);
         ctx.fillStyle = '#fff';
         ctx.font = '16px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(this.element, this.x, this.y + 6);
+        ctx.fillText(this.type, this.x, this.y + 6);
     }
 
     update(delta) {
         if (Date.now() - this.lastShot > this.cooldown) {
             const target = enemies.find(e => this.inRange(e));
             if (target) {
-                target.health -= 10; // simple damage
+                target.health -= this.damage;
                 this.lastShot = Date.now();
             }
         }
@@ -54,11 +64,12 @@ class Tower {
 }
 
 class Enemy {
-    constructor(path) {
+    constructor(path, level = 1) {
         this.path = path;
         this.pos = 0;
-        this.speed = 50; // pixels per second
-        this.health = 100;
+        this.speed = 50 + level * 5; // pixels per second
+        this.health = 80 + level * 20;
+        this.maxHealth = this.health;
         this.x = path[0].x;
         this.y = path[0].y;
         this.pathLength = this.computeLength();
@@ -93,16 +104,27 @@ class Enemy {
         ctx.beginPath();
         ctx.arc(this.x, this.y, gridSize / 3, 0, Math.PI * 2);
         ctx.fill();
+
+        // health bar
+        ctx.fillStyle = '#800';
+        ctx.fillRect(this.x - gridSize / 2, this.y - gridSize / 2 - 8, gridSize, 4);
+        ctx.fillStyle = '#0f0';
+        const w = gridSize * (this.health / this.maxHealth);
+        ctx.fillRect(this.x - gridSize / 2, this.y - gridSize / 2 - 8, w, 4);
     }
 }
 
 const path = [
     { x: 0, y: 300 },
-    { x: 800, y: 300 }
+    { x: 200, y: 300 },
+    { x: 200, y: 100 },
+    { x: 600, y: 100 },
+    { x: 600, y: 500 },
+    { x: 800, y: 500 }
 ];
 
-function spawnEnemy() {
-    enemies.push(new Enemy(path));
+function spawnEnemy(level) {
+    enemies.push(new Enemy(path, level));
 }
 
 function gameOver() {
@@ -118,12 +140,39 @@ canvas.addEventListener('click', e => {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    if (gold >= TOWER_COST) {
-        towers.push(new Tower(x, y, 'H'));
-        gold -= TOWER_COST;
+    const cfg = TOWER_TYPES[selectedTower];
+    if (gold >= cfg.cost) {
+        towers.push(new Tower(x, y, selectedTower));
+        gold -= cfg.cost;
         updateStats();
     }
 });
+
+document.querySelectorAll('#controls button[data-tower]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        selectedTower = btn.dataset.tower;
+        document.querySelectorAll('#controls button[data-tower]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    });
+});
+
+function startWave() {
+    if (waveInProgress) return;
+    waveInProgress = true;
+    wave++;
+    updateStats();
+    let spawned = 0;
+    const interval = setInterval(() => {
+        spawnEnemy(wave);
+        spawned++;
+        if (spawned >= 10) {
+            clearInterval(interval);
+            waveInProgress = false;
+        }
+    }, 1000);
+}
+
+startBtn.addEventListener('click', startWave);
 
 function update(time) {
     const delta = (time - lastTime) / 1000;
@@ -163,6 +212,5 @@ function update(time) {
     requestAnimationFrame(update);
 }
 
-spawnEnemy();
-setInterval(spawnEnemy, 2000);
 requestAnimationFrame(update);
+startWave();

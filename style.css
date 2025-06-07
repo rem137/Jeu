@@ -16,3 +16,16 @@ canvas {
     margin: 10px;
     font-size: 18px;
 }
+
+#controls button {
+    margin: 5px;
+    padding: 6px 12px;
+    background: #333;
+    border: 1px solid #555;
+    color: #eee;
+    cursor: pointer;
+}
+
+#controls button.active {
+    background: #555;
+}
