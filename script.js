@@ -5,6 +5,7 @@ const gridSize = 40;
 let lastTime = 0;
 const towers = [];
 const enemies = [];
+const projectiles = [];
 
 const statsDiv = document.getElementById('stats');
 const startBtn = document.getElementById('startBtn');
@@ -13,10 +14,13 @@ let lives = 10;
 let wave = 0;
 let kills = 0;
 let waveInProgress = false;
+let mouseX;
+let mouseY;
+let hoverTower = null;
 const TOWER_TYPES = {
-    H: { cost: 20, damage: 10, range: 80, color: '#0af' },
-    O: { cost: 30, damage: 15, range: 100, color: '#0f0' },
-    C: { cost: 50, damage: 25, range: 120, color: '#f80' }
+    H: { cost: 20, damage: 15, range: 80, color: '#0af' },
+    O: { cost: 30, damage: 25, range: 100, color: '#0f0' },
+    C: { cost: 50, damage: 40, range: 120, color: '#f80' }
 };
 let selectedTower = 'H';
 
@@ -65,6 +69,14 @@ class Tower {
             if (target) {
                 target.health -= this.damage;
                 this.lastShot = Date.now();
+                projectiles.push({
+                    x1: this.x,
+                    y1: this.y,
+                    x2: target.x,
+                    y2: target.y,
+                    start: Date.now(),
+                    duration: 200
+                });
             }
         }
         this.draw();
@@ -188,6 +200,13 @@ canvas.addEventListener('contextmenu', e => {
     }
 });
 
+canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
+    hoverTower = towers.find(t => Math.abs(t.x - mouseX) < gridSize / 2 && Math.abs(t.y - mouseY) < gridSize / 2) || null;
+});
+
 document.querySelectorAll('#controls button[data-tower]').forEach(btn => {
     btn.addEventListener('click', () => {
         selectedTower = btn.dataset.tower;
@@ -229,6 +248,37 @@ function update(time) {
         ctx.lineTo(p.x, p.y);
     }
     ctx.stroke();
+
+    // range indicator
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    if (hoverTower) {
+        ctx.beginPath();
+        ctx.arc(hoverTower.x, hoverTower.y, hoverTower.range, 0, Math.PI * 2);
+        ctx.stroke();
+    } else if (mouseX !== undefined && mouseY !== undefined) {
+        const r = TOWER_TYPES[selectedTower].range;
+        ctx.beginPath();
+        ctx.arc(mouseX, mouseY, r, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    // projectiles
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+        const p = projectiles[i];
+        const progress = (Date.now() - p.start) / p.duration;
+        if (progress >= 1) {
+            projectiles.splice(i, 1);
+            continue;
+        }
+        const x = p.x1 + (p.x2 - p.x1) * progress;
+        const y = p.y1 + (p.y2 - p.y1) * progress;
+        ctx.strokeStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(p.x1, p.y1);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    }
 
     towers.forEach(t => t.update(delta));
     for (let i = enemies.length - 1; i >= 0; i--) {
