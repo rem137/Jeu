@@ -6,6 +6,16 @@ let lastTime = 0;
 const towers = [];
 const enemies = [];
 
+const statsDiv = document.getElementById('stats');
+let gold = 100;
+let lives = 10;
+const TOWER_COST = 20;
+
+function updateStats() {
+    statsDiv.textContent = `Gold: ${gold} | Lives: ${lives}`;
+}
+updateStats();
+
 class Tower {
     constructor(x, y, element) {
         this.x = x;
@@ -84,11 +94,24 @@ function spawnEnemy() {
     enemies.push(new Enemy(path));
 }
 
+function gameOver() {
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff';
+    ctx.font = '48px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2);
+}
+
 canvas.addEventListener('click', e => {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    towers.push(new Tower(x, y, 'H'));
+    if (gold >= TOWER_COST) {
+        towers.push(new Tower(x, y, 'H'));
+        gold -= TOWER_COST;
+        updateStats();
+    }
 });
 
 function update(time) {
@@ -108,10 +131,27 @@ function update(time) {
     ctx.stroke();
 
     towers.forEach(t => t.update(delta));
-    enemies.forEach(e => e.update(delta));
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const e = enemies[i];
+        e.update(delta);
+        if (e.health <= 0) {
+            enemies.splice(i, 1);
+            gold += 5;
+            updateStats();
+        } else if (e.pos >= e.path.length - 1) {
+            enemies.splice(i, 1);
+            lives--;
+            updateStats();
+            if (lives <= 0) {
+                gameOver();
+                return;
+            }
+        }
+    }
 
     requestAnimationFrame(update);
 }
 
 spawnEnemy();
+setInterval(spawnEnemy, 2000);
 requestAnimationFrame(update);

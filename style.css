@@ -11,3 +11,8 @@ canvas {
     margin: 20px auto;
     display: block;
 }
+
+#stats {
+    margin: 10px;
+    font-size: 18px;
+}
