@@ -61,11 +61,22 @@ class Enemy {
         this.health = 100;
         this.x = path[0].x;
         this.y = path[0].y;
+        this.pathLength = this.computeLength();
+    }
+
+    computeLength() {
+        let len = 0;
+        for (let i = 0; i < this.path.length - 1; i++) {
+            const dx = this.path[i + 1].x - this.path[i].x;
+            const dy = this.path[i + 1].y - this.path[i].y;
+            len += Math.hypot(dx, dy);
+        }
+        return len || 1;
     }
 
     update(delta) {
         if (this.health <= 0) return;
-        this.pos += this.speed * delta;
+        this.pos += this.speed * delta * (this.path.length - 1) / this.pathLength;
         if (this.pos >= this.path.length - 1) {
             this.pos = this.path.length - 1;
         }
