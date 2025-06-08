@@ -15,6 +15,7 @@ const startGameBtn = document.getElementById('startGameBtn');
 const gameOverScreen = document.getElementById('gameOverScreen');
 const finalStats = document.getElementById('finalStats');
 const restartBtn = document.getElementById('restartBtn');
+
 let gold = 100;
 let lives = 10;
 let wave = 0;
@@ -24,137 +25,12 @@ let paused = true;
 let mouseX;
 let mouseY;
 let hoverTower = null;
-const TOWER_TYPES = {
-    H: { cost: 20, damage: 15, range: 80, color: '#0af' },
-    O: { cost: 30, damage: 25, range: 100, color: '#0f0' },
-    C: { cost: 50, damage: 40, range: 120, color: '#f80' }
-};
 let selectedTower = 'H';
 
 function updateStats() {
     statsDiv.textContent = `Gold: ${gold} | Lives: ${lives} | Wave: ${wave} | Kills: ${kills}`;
 }
 updateStats();
-
-class Tower {
-    constructor(x, y, type) {
-        this.x = x;
-        this.y = y;
-        this.type = type;
-        const cfg = TOWER_TYPES[type];
-        this.range = cfg.range;
-        this.damage = cfg.damage;
-        this.color = cfg.color;
-        this.cooldown = 1000;
-        this.lastShot = 0;
-        this.level = 1;
-    }
-
-    upgrade() {
-        const cost = TOWER_TYPES[this.type].cost * this.level;
-        if (gold >= cost) {
-            gold -= cost;
-            this.level++;
-            this.damage = Math.round(this.damage * 1.5);
-            this.range = Math.round(this.range * 1.1);
-            updateStats();
-        }
-    }
-
-    draw() {
-        ctx.fillStyle = this.color;
-        ctx.fillRect(this.x - gridSize / 2, this.y - gridSize / 2, gridSize, gridSize);
-        ctx.fillStyle = '#fff';
-        ctx.font = '16px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(this.type + this.level, this.x, this.y + 6);
-    }
-
-    update(delta) {
-        if (Date.now() - this.lastShot > this.cooldown) {
-            const target = enemies.find(e => this.inRange(e));
-            if (target) {
-                target.health -= this.damage;
-                this.lastShot = Date.now();
-                projectiles.push({
-                    x1: this.x,
-                    y1: this.y,
-                    x2: target.x,
-                    y2: target.y,
-                    start: Date.now(),
-                    duration: 200
-                });
-            }
-        }
-        this.draw();
-    }
-
-    inRange(enemy) {
-        const dx = enemy.x - this.x;
-        const dy = enemy.y - this.y;
-        return Math.sqrt(dx * dx + dy * dy) < this.range;
-    }
-}
-
-const ENEMY_TYPES = {
-    normal: { speed: 50, health: 80, color: '#f00' },
-    fast: { speed: 90, health: 60, color: '#ff0' },
-    tank: { speed: 30, health: 160, color: '#0ff' }
-};
-
-class Enemy {
-    constructor(path, level = 1, type = 'normal') {
-        this.path = path;
-        this.type = type;
-        const cfg = ENEMY_TYPES[type];
-        this.pos = 0;
-        this.speed = cfg.speed + level * 2;
-        this.health = cfg.health + level * 10;
-        this.maxHealth = this.health;
-        this.color = cfg.color;
-        this.x = path[0].x;
-        this.y = path[0].y;
-        this.pathLength = this.computeLength();
-    }
-
-    computeLength() {
-        let len = 0;
-        for (let i = 0; i < this.path.length - 1; i++) {
-            const dx = this.path[i + 1].x - this.path[i].x;
-            const dy = this.path[i + 1].y - this.path[i].y;
-            len += Math.hypot(dx, dy);
-        }
-        return len || 1;
-    }
-
-    update(delta) {
-        if (this.health <= 0) return;
-        this.pos += this.speed * delta * (this.path.length - 1) / this.pathLength;
-        if (this.pos >= this.path.length - 1) {
-            this.pos = this.path.length - 1;
-        }
-        const p1 = this.path[Math.floor(this.pos)];
-        const p2 = this.path[Math.min(this.path.length - 1, Math.floor(this.pos) + 1)];
-        const t = this.pos % 1;
-        this.x = p1.x + (p2.x - p1.x) * t;
-        this.y = p1.y + (p2.y - p1.y) * t;
-        this.draw();
-    }
-
-    draw() {
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, gridSize / 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // health bar
-        ctx.fillStyle = '#800';
-        ctx.fillRect(this.x - gridSize / 2, this.y - gridSize / 2 - 8, gridSize, 4);
-        ctx.fillStyle = '#0f0';
-        const w = gridSize * (this.health / this.maxHealth);
-        ctx.fillRect(this.x - gridSize / 2, this.y - gridSize / 2 - 8, w, 4);
-    }
-}
 
 const path = [
     { x: 0, y: 300 },
@@ -275,7 +151,6 @@ function update(time) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // draw path
     ctx.strokeStyle = '#888';
     ctx.lineWidth = 5;
     ctx.beginPath();
@@ -285,7 +160,6 @@ function update(time) {
     }
     ctx.stroke();
 
-    // range indicator
     ctx.strokeStyle = 'rgba(255,255,255,0.3)';
     ctx.lineWidth = 1;
     if (hoverTower) {
@@ -299,7 +173,6 @@ function update(time) {
         ctx.stroke();
     }
 
-    // projectiles
     for (let i = projectiles.length - 1; i >= 0; i--) {
         const p = projectiles[i];
         const progress = (Date.now() - p.start) / p.duration;
@@ -338,5 +211,3 @@ function update(time) {
 
     requestAnimationFrame(update);
 }
-
-
