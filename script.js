@@ -9,11 +9,18 @@ const projectiles = [];
 
 const statsDiv = document.getElementById('stats');
 const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
+const startScreen = document.getElementById('startScreen');
+const startGameBtn = document.getElementById('startGameBtn');
+const gameOverScreen = document.getElementById('gameOverScreen');
+const finalStats = document.getElementById('finalStats');
+const restartBtn = document.getElementById('restartBtn');
 let gold = 100;
 let lives = 10;
 let wave = 0;
 let kills = 0;
 let waveInProgress = false;
+let paused = true;
 let mouseX;
 let mouseY;
 let hoverTower = null;
@@ -169,12 +176,9 @@ function spawnEnemy(level) {
 }
 
 function gameOver() {
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#fff';
-    ctx.font = '48px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2);
+    paused = true;
+    finalStats.textContent = `Wave: ${wave} | Kills: ${kills}`;
+    gameOverScreen.classList.remove('hidden');
 }
 
 function getCanvasPos(e) {
@@ -191,7 +195,14 @@ function handlePointerDown(e) {
     const { x, y } = getCanvasPos(e);
     const tower = towers.find(t => Math.abs(t.x - x) < gridSize / 2 && Math.abs(t.y - y) < gridSize / 2);
     if (tower) {
-        tower.upgrade();
+        if (e.shiftKey) {
+            const refund = Math.floor(TOWER_TYPES[tower.type].cost * tower.level * 0.5);
+            gold += refund;
+            towers.splice(towers.indexOf(tower), 1);
+            updateStats();
+        } else {
+            tower.upgrade();
+        }
     } else {
         const cfg = TOWER_TYPES[selectedTower];
         if (gold >= cfg.cost) {
@@ -220,16 +231,35 @@ document.querySelectorAll('#controls button[data-tower]').forEach(btn => {
     });
 });
 
+pauseBtn.addEventListener('click', () => {
+    paused = !paused;
+    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    if (!paused) requestAnimationFrame(update);
+});
+
+startGameBtn.addEventListener('click', () => {
+    startScreen.classList.add('hidden');
+    paused = false;
+    lastTime = performance.now();
+    requestAnimationFrame(update);
+    startWave();
+});
+
+restartBtn.addEventListener('click', () => {
+    location.reload();
+});
+
 function startWave() {
     if (waveInProgress) return;
     waveInProgress = true;
     wave++;
     updateStats();
     let spawned = 0;
+    const toSpawn = 10 + wave * 2;
     const interval = setInterval(() => {
         spawnEnemy(wave);
         spawned++;
-        if (spawned >= 10) {
+        if (spawned >= toSpawn) {
             clearInterval(interval);
             waveInProgress = false;
         }
@@ -239,6 +269,7 @@ function startWave() {
 startBtn.addEventListener('click', startWave);
 
 function update(time) {
+    if (paused) return;
     const delta = (time - lastTime) / 1000;
     lastTime = time;
 
@@ -308,5 +339,4 @@ function update(time) {
     requestAnimationFrame(update);
 }
 
-requestAnimationFrame(update);
-startWave();
+

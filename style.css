@@ -3,6 +3,7 @@ body {
     color: #eee;
     text-align: center;
     font-family: Arial, sans-serif;
+    position: relative;
 }
 
 canvas {
@@ -32,4 +33,21 @@ canvas {
 
 #controls button.active {
     background: #555;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.overlay.hidden {
+    display: none;
 }
