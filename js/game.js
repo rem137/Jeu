@@ -31,6 +31,8 @@ let mouseY;
 let hoverTower = null;
 let activeTower = null;
 let selectedTower = 'H';
+let draggingType = null;
+let dragIcon = null;
 
 function updateStats() {
     statsDiv.textContent = `Gold: ${gold} | Lives: ${lives} | Wave: ${wave} | Kills: ${kills}`;
@@ -48,8 +50,9 @@ function updatePanel() {
         upgradeBtn.classList.remove('hidden');
         sellBtn.classList.remove('hidden');
     } else {
-        const cfg = TOWER_TYPES[selectedTower];
-        panelTitle.textContent = `${selectedTower} Tower`;
+        const type = draggingType || selectedTower;
+        const cfg = TOWER_TYPES[type];
+        panelTitle.textContent = `${type} Tower`;
         panelDetails.textContent = `Cost: ${cfg.cost} | Dmg: ${cfg.damage} | Range: ${cfg.range}`;
         upgradeBtn.classList.add('hidden');
         sellBtn.classList.add('hidden');
@@ -91,6 +94,62 @@ function getCanvasPos(e) {
     return { x, y };
 }
 
+function startDrag(type, e) {
+    draggingType = type;
+    selectedTower = type;
+    activeTower = null;
+    updatePanel();
+    dragIcon = document.createElement('div');
+    dragIcon.className = 'drag-icon';
+    dragIcon.textContent = type;
+    dragIcon.style.background = TOWER_TYPES[type].color;
+    document.body.appendChild(dragIcon);
+    moveDragIcon(e);
+    document.addEventListener('pointermove', handleDragMove);
+    document.addEventListener('pointerup', handleDragEnd);
+}
+
+function moveDragIcon(e) {
+    dragIcon.style.left = e.pageX - 20 + 'px';
+    dragIcon.style.top = e.pageY - 20 + 'px';
+}
+
+function handleDragMove(e) {
+    moveDragIcon(e);
+    const rect = canvas.getBoundingClientRect();
+    if (e.pageX >= rect.left && e.pageX <= rect.right && e.pageY >= rect.top && e.pageY <= rect.bottom) {
+        const { x, y } = getCanvasPos(e);
+        mouseX = x;
+        mouseY = y;
+    } else {
+        mouseX = undefined;
+        mouseY = undefined;
+    }
+    hoverTower = null;
+    updatePanel();
+}
+
+function handleDragEnd(e) {
+    document.removeEventListener('pointermove', handleDragMove);
+    document.removeEventListener('pointerup', handleDragEnd);
+    dragIcon.remove();
+    const rect = canvas.getBoundingClientRect();
+    if (e.pageX >= rect.left && e.pageX <= rect.right && e.pageY >= rect.top && e.pageY <= rect.bottom) {
+        const { x, y } = getCanvasPos(e);
+        const cfg = TOWER_TYPES[draggingType];
+        if (gold >= cfg.cost) {
+            towers.push(new Tower(x, y, draggingType));
+            gold -= cfg.cost;
+            updateStats();
+        }
+    }
+    draggingType = null;
+    dragIcon = null;
+    mouseX = undefined;
+    mouseY = undefined;
+    updatePanel();
+}
+
 function handlePointerDown(e) {
     e.preventDefault();
     const { x, y } = getCanvasPos(e);
@@ -110,14 +169,8 @@ function handlePointerDown(e) {
             updatePanel();
         }
     } else {
-        const cfg = TOWER_TYPES[selectedTower];
-        if (gold >= cfg.cost) {
-            towers.push(new Tower(x, y, selectedTower));
-            gold -= cfg.cost;
-            updateStats();
-            activeTower = towers[towers.length - 1];
-            hoverTower = activeTower;
-        }
+        activeTower = null;
+        hoverTower = null;
         updatePanel();
     }
 }
@@ -126,7 +179,9 @@ function handlePointerMove(e) {
     const { x, y } = getCanvasPos(e);
     mouseX = x;
     mouseY = y;
-    hoverTower = towers.find(t => Math.abs(t.x - mouseX) < gridSize / 2 && Math.abs(t.y - mouseY) < gridSize / 2) || null;
+    if (!draggingType) {
+        hoverTower = towers.find(t => Math.abs(t.x - mouseX) < gridSize / 2 && Math.abs(t.y - mouseY) < gridSize / 2) || null;
+    }
     updatePanel();
 }
 
@@ -134,12 +189,9 @@ canvas.addEventListener('pointerdown', handlePointerDown);
 canvas.addEventListener('pointermove', handlePointerMove);
 
 document.querySelectorAll('#controls button[data-tower]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        selectedTower = btn.dataset.tower;
-        document.querySelectorAll('#controls button[data-tower]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        activeTower = null;
-        updatePanel();
+    btn.addEventListener('pointerdown', e => {
+        e.preventDefault();
+        startDrag(btn.dataset.tower, e);
     });
 });
 
@@ -222,7 +274,7 @@ function update(time) {
         ctx.arc(hoverTower.x, hoverTower.y, hoverTower.range, 0, Math.PI * 2);
         ctx.stroke();
     } else if (mouseX !== undefined && mouseY !== undefined) {
-        const r = TOWER_TYPES[selectedTower].range;
+        const r = TOWER_TYPES[draggingType || selectedTower].range;
         ctx.beginPath();
         ctx.arc(mouseX, mouseY, r, 0, Math.PI * 2);
         ctx.stroke();

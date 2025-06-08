@@ -44,9 +44,6 @@ body {
     cursor: pointer;
 }
 
-#controls button.active {
-    background: #4b6584;
-}
 
 #panel {
     margin-top: auto;
@@ -82,4 +79,19 @@ canvas {
 
 .hidden {
     display: none;
+}
+
+.drag-icon {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #fff;
+    border-radius: 4px;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+    font-weight: bold;
+    user-select: none;
 }
