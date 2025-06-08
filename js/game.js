@@ -8,6 +8,7 @@ const enemies = [];
 const projectiles = [];
 
 const statsDiv = document.getElementById('stats');
+const infoDiv = document.getElementById('info');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const startScreen = document.getElementById('startScreen');
@@ -31,6 +32,18 @@ function updateStats() {
     statsDiv.textContent = `Gold: ${gold} | Lives: ${lives} | Wave: ${wave} | Kills: ${kills}`;
 }
 updateStats();
+
+function updateInfo() {
+    if (hoverTower) {
+        const cost = TOWER_TYPES[hoverTower.type].cost * hoverTower.level;
+        const refund = Math.floor(cost * 0.5);
+        infoDiv.textContent = `Upgrade: ${cost} | Sell: ${refund}`;
+    } else {
+        const cfg = TOWER_TYPES[selectedTower];
+        infoDiv.textContent = `Place ${selectedTower} (${cfg.cost})`;
+    }
+}
+updateInfo();
 
 const path = [
     { x: 0, y: 300 },
@@ -76,8 +89,12 @@ function handlePointerDown(e) {
             gold += refund;
             towers.splice(towers.indexOf(tower), 1);
             updateStats();
+            hoverTower = null;
+            updateInfo();
         } else {
             tower.upgrade();
+            hoverTower = tower;
+            updateInfo();
         }
     } else {
         const cfg = TOWER_TYPES[selectedTower];
@@ -85,7 +102,9 @@ function handlePointerDown(e) {
             towers.push(new Tower(x, y, selectedTower));
             gold -= cfg.cost;
             updateStats();
+            hoverTower = towers[towers.length - 1];
         }
+        updateInfo();
     }
 }
 
@@ -94,6 +113,7 @@ function handlePointerMove(e) {
     mouseX = x;
     mouseY = y;
     hoverTower = towers.find(t => Math.abs(t.x - mouseX) < gridSize / 2 && Math.abs(t.y - mouseY) < gridSize / 2) || null;
+    updateInfo();
 }
 
 canvas.addEventListener('pointerdown', handlePointerDown);
@@ -104,6 +124,7 @@ document.querySelectorAll('#controls button[data-tower]').forEach(btn => {
         selectedTower = btn.dataset.tower;
         document.querySelectorAll('#controls button[data-tower]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        updateInfo();
     });
 });
 

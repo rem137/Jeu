@@ -21,6 +21,11 @@ canvas {
     font-size: 18px;
 }
 
+#info {
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
 #controls button {
     margin: 5px;
     padding: 8px 14px;
