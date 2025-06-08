@@ -9,7 +9,14 @@
 <body>
     <h1>Chemical Tower Defence</h1>
     <div id="stats"></div>
-    <div id="info"></div>
+    <div id="panel">
+        <h3 id="panelTitle"></h3>
+        <p id="panelDetails"></p>
+        <div id="panelActions">
+            <button id="upgradeBtn" class="hidden">Upgrade</button>
+            <button id="sellBtn" class="hidden">Sell</button>
+        </div>
+    </div>
     <div id="controls">
         <button data-tower="H" class="active">Hydrogen (20)</button>
         <button data-tower="O">Oxygen (30)</button>
@@ -20,7 +27,7 @@
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <div id="startScreen" class="overlay">
         <h2>Bienvenue dans Chemical Tower Defence</h2>
-        <p>Tapez pour placer des tours. Touchez une tour pour l'améliorer (le coût s'affiche en dessous) ou maintenez Shift pour la vendre.</p>
+        <p>Touchez le champ pour placer une tour. Sélectionnez une tour pour afficher le panneau d'amélioration où vous pourrez l'améliorer ou la vendre.</p>
         <button id="startGameBtn">Commencer</button>
     </div>
     <div id="gameOverScreen" class="overlay hidden">

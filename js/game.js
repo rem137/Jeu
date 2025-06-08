@@ -8,7 +8,10 @@ const enemies = [];
 const projectiles = [];
 
 const statsDiv = document.getElementById('stats');
-const infoDiv = document.getElementById('info');
+const panelTitle = document.getElementById('panelTitle');
+const panelDetails = document.getElementById('panelDetails');
+const upgradeBtn = document.getElementById('upgradeBtn');
+const sellBtn = document.getElementById('sellBtn');
 const startBtn = document.getElementById('startBtn');
 const pauseBtn = document.getElementById('pauseBtn');
 const startScreen = document.getElementById('startScreen');
@@ -26,6 +29,7 @@ let paused = true;
 let mouseX;
 let mouseY;
 let hoverTower = null;
+let activeTower = null;
 let selectedTower = 'H';
 
 function updateStats() {
@@ -33,17 +37,25 @@ function updateStats() {
 }
 updateStats();
 
-function updateInfo() {
-    if (hoverTower) {
-        const cost = TOWER_TYPES[hoverTower.type].cost * hoverTower.level;
+function updatePanel() {
+    if (activeTower) {
+        const cost = TOWER_TYPES[activeTower.type].cost * activeTower.level;
         const refund = Math.floor(cost * 0.5);
-        infoDiv.textContent = `Upgrade: ${cost} | Sell: ${refund}`;
+        panelTitle.textContent = `${activeTower.type} Tower Lv${activeTower.level}`;
+        panelDetails.textContent = `Dmg: ${activeTower.damage} | Range: ${activeTower.range}`;
+        upgradeBtn.textContent = `Upgrade (${cost})`;
+        sellBtn.textContent = `Sell (${refund})`;
+        upgradeBtn.classList.remove('hidden');
+        sellBtn.classList.remove('hidden');
     } else {
         const cfg = TOWER_TYPES[selectedTower];
-        infoDiv.textContent = `Place ${selectedTower} (${cfg.cost})`;
+        panelTitle.textContent = `${selectedTower} Tower`;
+        panelDetails.textContent = `Cost: ${cfg.cost} | Dmg: ${cfg.damage} | Range: ${cfg.range}`;
+        upgradeBtn.classList.add('hidden');
+        sellBtn.classList.add('hidden');
     }
 }
-updateInfo();
+updatePanel();
 
 const path = [
     { x: 0, y: 300 },
@@ -90,11 +102,12 @@ function handlePointerDown(e) {
             towers.splice(towers.indexOf(tower), 1);
             updateStats();
             hoverTower = null;
-            updateInfo();
+            activeTower = null;
+            updatePanel();
         } else {
-            tower.upgrade();
+            activeTower = tower;
             hoverTower = tower;
-            updateInfo();
+            updatePanel();
         }
     } else {
         const cfg = TOWER_TYPES[selectedTower];
@@ -102,9 +115,10 @@ function handlePointerDown(e) {
             towers.push(new Tower(x, y, selectedTower));
             gold -= cfg.cost;
             updateStats();
-            hoverTower = towers[towers.length - 1];
+            activeTower = towers[towers.length - 1];
+            hoverTower = activeTower;
         }
-        updateInfo();
+        updatePanel();
     }
 }
 
@@ -113,7 +127,7 @@ function handlePointerMove(e) {
     mouseX = x;
     mouseY = y;
     hoverTower = towers.find(t => Math.abs(t.x - mouseX) < gridSize / 2 && Math.abs(t.y - mouseY) < gridSize / 2) || null;
-    updateInfo();
+    updatePanel();
 }
 
 canvas.addEventListener('pointerdown', handlePointerDown);
@@ -124,7 +138,8 @@ document.querySelectorAll('#controls button[data-tower]').forEach(btn => {
         selectedTower = btn.dataset.tower;
         document.querySelectorAll('#controls button[data-tower]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        updateInfo();
+        activeTower = null;
+        updatePanel();
     });
 });
 
@@ -144,6 +159,25 @@ startGameBtn.addEventListener('click', () => {
 
 restartBtn.addEventListener('click', () => {
     location.reload();
+});
+
+upgradeBtn.addEventListener('click', () => {
+    if (activeTower) {
+        activeTower.upgrade();
+        updatePanel();
+    }
+});
+
+sellBtn.addEventListener('click', () => {
+    if (activeTower) {
+        const refund = Math.floor(TOWER_TYPES[activeTower.type].cost * activeTower.level * 0.5);
+        gold += refund;
+        towers.splice(towers.indexOf(activeTower), 1);
+        activeTower = null;
+        hoverTower = null;
+        updateStats();
+        updatePanel();
+    }
 });
 
 function startWave() {

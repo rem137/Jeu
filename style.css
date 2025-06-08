@@ -21,9 +21,24 @@ canvas {
     font-size: 18px;
 }
 
-#info {
-    margin-bottom: 10px;
+
+#panel {
+    margin: 10px auto;
+    padding: 8px;
+    width: 240px;
+    background: #333;
+    border: 1px solid #555;
     font-size: 16px;
+}
+
+#panelActions button {
+    margin: 5px;
+    padding: 6px 12px;
+    background: #444;
+    border: 1px solid #666;
+    color: #eee;
+    cursor: pointer;
+    font-size: 14px;
 }
 
 #controls button {
